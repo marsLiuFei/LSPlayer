@@ -93,24 +93,4 @@
 {
     return 10;
 }
-////如果要支持iOS7这个方法必须实现
-//-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-//    self.cell = (LSTableViewCell *)[tableView dequeueReusableCellWithIdentifier:@"cell"];
-//
-//
-//    LSTableViewCell *cell = self.cell;
-//    //这句代码必须要有，也就是说必须要设定contentView的宽度约束。
-//    //设置以后，contentView里面的内容才知道什么时候该换行了
-//    CGFloat contentViewWidth = CGRectGetWidth(self.tableView.frame);
-//
-//
-//    //重新加载约束
-//    [cell setNeedsUpdateConstraints];
-//    [cell updateConstraintsIfNeeded];
-//
-//    //自动算高度，+1的原因是因为contentView的高度要比cell的高度小1
-//    CGFloat height = [cell.contentView systemLayoutSizeFittingSize:UILayoutFittingCompressedSize].height + 1;
-//
-//    return height;
-//}
 @end
