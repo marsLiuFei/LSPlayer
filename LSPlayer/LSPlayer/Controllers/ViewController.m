@@ -36,23 +36,22 @@
     [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent];
     self.tableView.rowHeight = UITableViewAutomaticDimension;
     self.tableView.estimatedRowHeight = 200;
-    NSDictionary *responseObject;
-    NSURL* url = [[NSBundle mainBundle] URLForResource:@"list.json" withExtension:nil];
-    responseObject = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfURL:url] options:0 error:NULL];
     
-    for (NSDictionary* dict in responseObject[@"videoList"]) {
-        LSMediaModel* model = [[LSMediaModel alloc] initWithDictionary:dict];
-        [self.models addObject:model];
-    }
-    [self.tableView reloadData];
-//    return;
     AFHTTPSessionManager* manager = [AFHTTPSessionManager manager];
     [manager GET:@"http://c.m.163.com/nc/video/home/0-10.html" parameters:nil progress:^(NSProgress* _Nonnull downloadProgress) {
     }
         success:^(NSURLSessionDataTask* _Nonnull task, id _Nullable responseObject) {
+
+            for (NSDictionary* dict in responseObject[@"videoList"]) {
+                LSMediaModel* model = [[LSMediaModel alloc] initWithDictionary:dict];
+                [self.models addObject:model];
+            }
+            [self.tableView reloadData];
+            if (self.models.count) return ;
+            //测试时地址有可能失效
             NSURL* url = [[NSBundle mainBundle] URLForResource:@"list.json" withExtension:nil];
             responseObject = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfURL:url] options:0 error:NULL];
-
+            
             for (NSDictionary* dict in responseObject[@"videoList"]) {
                 LSMediaModel* model = [[LSMediaModel alloc] initWithDictionary:dict];
                 [self.models addObject:model];

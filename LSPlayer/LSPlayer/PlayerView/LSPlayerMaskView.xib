@@ -31,25 +31,25 @@
                     </variation>
                 </button>
                 <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cpL-CN-v1f">
-                    <rect key="frame" x="20" y="283" width="299" height="2"/>
+                    <rect key="frame" x="20" y="288" width="299" height="2"/>
                 </progressView>
                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="00:00" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4YY-qw-k1S">
-                    <rect key="frame" x="329" y="277" width="34" height="14.5"/>
+                    <rect key="frame" x="329" y="282" width="34" height="14.5"/>
                     <fontDescription key="fontDescription" type="system" pointSize="12"/>
                     <color key="textColor" red="1" green="0.66727240089999995" blue="0.73316845919999996" alpha="1" colorSpace="calibratedRGB"/>
                     <nil key="highlightedColor"/>
                 </label>
                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="/00:00" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5OY-kK-AfU">
-                    <rect key="frame" x="364" y="277" width="38" height="14.5"/>
+                    <rect key="frame" x="364" y="282" width="38" height="14.5"/>
                     <fontDescription key="fontDescription" type="system" pointSize="12"/>
                     <color key="textColor" red="0.8174783269" green="1" blue="0.37396965669999999" alpha="1" colorSpace="calibratedRGB"/>
                     <nil key="highlightedColor"/>
                 </label>
                 <slider opaque="NO" contentMode="scaleToFill" verticalCompressionResistancePriority="749" contentHorizontalAlignment="center" contentVerticalAlignment="center" minValue="0.0" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="kqE-GT-thl">
-                    <rect key="frame" x="18" y="283" width="303" height="2.5"/>
+                    <rect key="frame" x="18" y="288.5" width="303" height="2.5"/>
                 </slider>
-                <button hidden="YES" opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WdZ-1w-GcH" userLabel="close">
-                    <rect key="frame" x="8" y="8" width="21" height="22"/>
+                <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WdZ-1w-GcH" userLabel="close">
+                    <rect key="frame" x="5" y="5" width="21" height="22"/>
                     <state key="normal" image="close_btn_normal"/>
                     <state key="highlighted" image="close_btn_sel"/>
                 </button>
@@ -61,7 +61,7 @@
                     </constraints>
                 </activityIndicatorView>
                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ICn-Ue-I1M" userLabel="full">
-                    <rect key="frame" x="402" y="266" width="36" height="36"/>
+                    <rect key="frame" x="402" y="271" width="36" height="36"/>
                     <constraints>
                         <constraint firstAttribute="height" constant="36" id="Tfw-vc-yya"/>
                         <constraint firstAttribute="width" constant="36" id="m6a-VO-aEA"/>
@@ -72,7 +72,7 @@
             </subviews>
             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
             <constraints>
-                <constraint firstAttribute="bottom" secondItem="kqE-GT-thl" secondAttribute="bottom" constant="20" id="1PS-VU-4g7"/>
+                <constraint firstAttribute="bottom" secondItem="kqE-GT-thl" secondAttribute="bottom" constant="15" id="1PS-VU-4g7"/>
                 <constraint firstItem="4YY-qw-k1S" firstAttribute="centerY" secondItem="hBx-gY-gXe" secondAttribute="centerY" id="29V-QX-Z6w"/>
                 <constraint firstItem="kqE-GT-thl" firstAttribute="leading" secondItem="cpL-CN-v1f" secondAttribute="leading" id="DzS-Bb-aOj"/>
                 <constraint firstAttribute="trailing" secondItem="cpL-CN-v1f" secondAttribute="trailing" constant="20" id="FGe-3w-Qss"/>
@@ -94,7 +94,7 @@
                 <constraint firstItem="4YY-qw-k1S" firstAttribute="centerY" secondItem="hBx-gY-gXe" secondAttribute="centerY" id="Szt-p7-pTi"/>
                 <constraint firstItem="kqE-GT-thl" firstAttribute="leading" secondItem="hBx-gY-gXe" secondAttribute="leading" constant="20" id="TOC-YR-n4F"/>
                 <constraint firstAttribute="bottom" secondItem="4YY-qw-k1S" secondAttribute="bottom" constant="20" id="V9q-yc-sYt"/>
-                <constraint firstAttribute="bottom" secondItem="cpL-CN-v1f" secondAttribute="bottom" constant="20" id="VPS-EG-Wcz"/>
+                <constraint firstAttribute="bottom" secondItem="cpL-CN-v1f" secondAttribute="bottom" constant="15" id="VPS-EG-Wcz"/>
                 <constraint firstItem="4YY-qw-k1S" firstAttribute="centerY" secondItem="kqE-GT-thl" secondAttribute="centerY" id="Xww-AN-4cP"/>
                 <constraint firstItem="4YY-qw-k1S" firstAttribute="leading" secondItem="kqE-GT-thl" secondAttribute="trailing" constant="10" id="Zv6-JQ-BOa"/>
                 <constraint firstItem="Ece-Bo-fCD" firstAttribute="centerY" secondItem="hBx-gY-gXe" secondAttribute="centerY" id="bJs-wO-i81"/>

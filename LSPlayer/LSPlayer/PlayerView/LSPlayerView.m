@@ -37,6 +37,9 @@
 //是否全屏
 @property (nonatomic, assign, getter=isFullScreen) BOOL fullScreen;
 
+//记录失去焦点时的p屏幕状态
+@property (nonatomic, assign)UIDeviceOrientation lastDeviceOrientation;
+
 //是否上锁
 @property (nonatomic, assign) BOOL isLocked;
 
@@ -80,6 +83,9 @@
 //捏合手势
 @property (nonatomic, strong) UIPinchGestureRecognizer* pinchGesture;
 
+//标记是否失去焦点
+@property (nonatomic, assign,getter=isLoseActive) BOOL loseActive;
+
 @end
 
 @implementation LSPlayerView
@@ -98,29 +104,34 @@ static LSPlayerView* playerView = nil;
 {
 
     self.image = [self imageWithOriginalImage:[UIImage imageNamed:@"VideoCoverDefault"]];
-
-    UIPinchGestureRecognizer* pinGesture = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePincgGesture:)];
+    
+   //捏合手势
+    UIPinchGestureRecognizer* pinGesture = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinchGesture:)];
     [self addGestureRecognizer:pinGesture];
     pinGesture.enabled = NO;
     self.pinchGesture = pinGesture;
 
+    //拖拽手势
     UIPanGestureRecognizer* panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
     [self addGestureRecognizer:panGesture];
     panGesture.delegate = self;
     self.panGesture = panGesture;
-
-    [self.retryButton addTarget:self action:@selector(retryButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+    
+    //单击手势
     UITapGestureRecognizer* tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapClick)];
     [self addGestureRecognizer:tap];
+    
+    //重新尝试按钮
+    [self.retryButton addTarget:self action:@selector(retryButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+    
 
     self.locationType = LSPLayerViewLocationTypeMiddle; //需放在添加手势后面 因为手势禁用根据所处位置在set方法里
 
     //监听失去焦点通知
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(willResignActive) name:UIApplicationWillResignActiveNotification object:nil];
-
-    //监听进入后台通知
-
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didEnterBackground) name:UIApplicationDidEnterBackgroundNotification object:nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(becomeActive) name:UIApplicationDidBecomeActiveNotification object:nil];
+    
 }
 - (void)awakeFromNib
 {
@@ -130,22 +141,25 @@ static LSPlayerView* playerView = nil;
 }
 #pragma mark - 捏合手势
 
-- (void)handlePincgGesture:(UIPinchGestureRecognizer*)gesture
+- (void)handlePinchGesture:(UIPinchGestureRecognizer*)gesture
 {
 
-    if (gesture.state == UIGestureRecognizerStateEnded)
+    NSLog(@"捏合手势");
+    if (gesture.state == UIGestureRecognizerStateEnded||gesture.state == UIGestureRecognizerStateCancelled||gesture.state == UIGestureRecognizerStateFailed){
+        self.panGesture.enabled=YES;
         return;
-    if (gesture.state == UIGestureRecognizerStateCancelled)
-        return;
-    if (gesture.state == UIGestureRecognizerStateFailed)
-        return;
-    self.layer.transform = CATransform3DScale(self.layer.transform, gesture.scale, gesture.scale, 1);
+    }
+    self.panGesture.enabled=NO;
     //    self.transform=CGAffineTransformScale(self.transform, gesture.scale, gesture.scale);
+    CGSize newSize=CGSizeMake(self.frame.size.width*gesture.scale, self.frame.size.height*gesture.scale);
     CGSize size = [UIScreen mainScreen].bounds.size;
-    if (self.frame.size.width >= size.width) {
-        self.transform = CGAffineTransformIdentity;
+    if (newSize.width >size.width) {
+        
+        NSLog(@"捏合手势结束了啦啦啦啦");
+//        self.transform = CGAffineTransformIdentity;
         gesture.enabled = NO;
-        [UIView animateWithDuration:1 delay:0 usingSpringWithDamping:10 initialSpringVelocity:10 options:UIViewAnimationOptionCurveEaseOut animations:^{
+        self.panGesture.enabled=NO;
+        [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:0.5 initialSpringVelocity:3 options:UIViewAnimationOptionCurveEaseOut animations:^{
 
             self.frame = CGRectMake(0, self.frame.origin.y, size.width, CellImageViewHeight);
             [self setNeedsLayout];
@@ -153,17 +167,19 @@ static LSPlayerView* playerView = nil;
         }
             completion:^(BOOL finished) {
                 gesture.enabled = YES;
+                self.panGesture.enabled=YES;
 
             }];
-        [UIView animateWithDuration:0.5 animations:^{
-        }];
+    }else{
+    self.layer.transform = CATransform3DScale(self.layer.transform, gesture.scale, gesture.scale, 1);
+        self.playerMaskView.transform=CGAffineTransformMakeScale(1, 1);
     }
     [gesture setScale:1];
 }
 #pragma mark - 拖拽手势处理
 - (void)handlePanGesture:(UIPanGestureRecognizer*)gesture
 {
-
+    if (gesture.numberOfTouches>1)return;
     if (self.locationType == LSPLayerViewLocationTypeTop) {
         //从上开始滑动
         [self handlePanTopGesture:gesture];
@@ -450,8 +466,7 @@ static LSPlayerView* playerView = nil;
 
     if (sender.selected) {
         [self.player pause];
-        [self.timer invalidate];
-        self.timer = nil;
+        [self stopTimer];
     }
     else {
         if (self.isCompletedPlay) {
@@ -464,7 +479,7 @@ static LSPlayerView* playerView = nil;
         }
     }
     if (self.locationType == LSPLayerViewLocationTypeBottom) {
-        sender.hidden = !sender.selected;
+            sender.hidden = !sender.selected;
     }
     else {
         [self cancelPreviousPerformAndHideMaskView]; //因为触碰maskView了所以需要将延迟隐藏事件重置为7s
@@ -493,13 +508,16 @@ static LSPlayerView* playerView = nil;
     self.playerMaskView.totalTimeLabel.hidden = NO;
 
     [self.player pause];
+    
     if (self.superview != self.tempSuperView) {
         [self.tempSuperView addSubview:self];
     }
+    
     playerView.hidden = YES;
     if (self.isFullScreen) {
         [self interfaceOrientation:UIInterfaceOrientationPortrait];
     }
+    self.portraitFrame=CGRectZero;
     self.transform = CGAffineTransformIdentity;
 }
 #pragma mark -  创建定时器
@@ -532,12 +550,13 @@ static LSPlayerView* playerView = nil;
 }
 - (void)setFullScreen:(BOOL)fullScreen
 {
-    _fullScreen = fullScreen;
-    self.panGesture.enabled = !fullScreen;
-    self.pinchGesture.enabled = !fullScreen;
-    if (fullScreen) {
+    if (fullScreen) {//由全屏进入后台 在进入前台 会显示全屏 但是一旋转frame跟全屏一样
+        self.panGesture.enabled = NO;
+        self.pinchGesture.enabled = NO;
         [[UIApplication sharedApplication] setStatusBarHidden:YES];
-        self.portraitFrame = self.frame;
+        if (!(self.fullScreen&&fullScreen)) {
+            self.portraitFrame = self.frame;
+        }
         [self handleTimeLabelAndSliderWithHidden:NO];
         self.playerMaskView.playButton.hidden = NO;
         [self updatePlayerViewFrame];
@@ -546,17 +565,31 @@ static LSPlayerView* playerView = nil;
         if (self.locationType == LSPLayerViewLocationTypeBottom) {
             self.playerMaskView.hidden = NO;
             [self handleTimeLabelAndSliderWithHidden:YES];
+            self.panGesture.enabled = YES;
+            self.pinchGesture.enabled = YES;
         }
         if (self.locationType == LSPLayerViewLocationTypeMiddle) {
             [self.tempSuperView addSubview:self];
+            self.panGesture.enabled = NO;
+            self.pinchGesture.enabled = NO;
+            self.playerMaskView.closeButton.hidden=YES;
+
+            
         }
         else if (self.locationType == LSPLayerViewLocationTypeTop) {
+            self.panGesture.enabled = YES;
+            self.pinchGesture.enabled = YES;
+
             //            [self.tempSuperView addSubview:self];
         }
-        self.frame = self.portraitFrame;
-        [self setNeedsLayout];
-        [self layoutIfNeeded];
+        //进入后台也会发出方向改变通知 但如果此前没有进入横屏过此时portraitFrame为 0
+        if (!CGRectIsEmpty(self.portraitFrame)) {
+            self.frame = self.portraitFrame;
+            [self setNeedsLayout];
+            [self layoutIfNeeded];
+        }
     }
+    _fullScreen = fullScreen;
 }
 #pragma mark - 立刻显示maskView不执行7s后自动隐藏
 - (void)showMaskView
@@ -671,9 +704,11 @@ static LSPlayerView* playerView = nil;
 #pragma mark -  监听缓冲进度  KVO
 - (void)observeValueForKeyPath:(NSString*)keyPath ofObject:(id)object change:(NSDictionary<NSString*, id>*)change context:(void*)context
 {
+    //当应用程序从后台进入前台时也会调用
+    if (self.isLoseActive) return;
     if ([keyPath isEqualToString:@"status"]) {
         if ([self.playerItem status] == AVPlayerStatusReadyToPlay) { //准备播放
-            //            NSLog(@"AVPlayerStatusReadyToPlay");
+            NSLog(@"AVPlayerStatusReadyToPlay");
             [self createTimer];
             [self stopAnimation];
             [self cancelPreviousPerformAndHideMaskView]; //延迟隐藏
@@ -704,7 +739,6 @@ static LSPlayerView* playerView = nil;
         return;
     if (!self.isMonitoring)
         return;
-    NSLog(@"%s", __func__);
     //此处需要判断全屏时不坚听contentOffset 让不然调用cellForIndexPath会出现崩溃bug
     //竖屏才监听contentOffset
     if ([keyPath isEqualToString:kLSPlayerViewContentOffset]) {
@@ -712,6 +746,7 @@ static LSPlayerView* playerView = nil;
             return;
         [self handleScrollOffsetWithDict:change];
     }
+    NSLog(@"%s", __func__);
 }
 #pragma mark - 当tableview滚动时处理playerView的位置
 - (void)handleScrollOffsetWithDict:(NSDictionary*)dict
@@ -811,14 +846,29 @@ static LSPlayerView* playerView = nil;
         [invocation invoke];
     }
 }
+
+
 #pragma mark - 将失去焦点通知
 - (void)willResignActive
 {
+    self.loseActive=YES;
+    if (!self.isFullScreen) {
+        self.portraitFrame=self.frame;
+    }
+    self.lastDeviceOrientation=[UIDevice currentDevice].orientation;
+    [self stopTimer];
+    self.playerMaskView.playButton.selected=YES;
+    [self playOrPause:self.playerMaskView.playButton];
+    
+    
 }
-#pragma mark - 进入后台通知
-- (void)didEnterBackground
+#pragma mark - 获取焦点通知
+-(void)becomeActive
 {
+    self.loseActive=NO;
+    [self interfaceOrientation:self.lastDeviceOrientation];
 }
+
 #pragma mark - 监听设备旋转方向
 - (void)listeningRotating
 {
@@ -828,16 +878,21 @@ static LSPlayerView* playerView = nil;
 - (void)handleDeviceOrientationChange
 {
 
+    if (self.isLoseActive) return;
     UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
     UIInterfaceOrientation interfaceOrientation = (UIInterfaceOrientation)orientation;
+//    if (self.lastDeviceOrientation==orientation) return;
+//    self.lastDeviceOrientation=orientation;
     switch (interfaceOrientation) {
 
     case UIInterfaceOrientationPortraitUpsideDown: {
         NSLog(@"第3个旋转方向---电池栏在下");
 
+
     } break;
     case UIInterfaceOrientationPortrait: {
         NSLog(@"第0个旋转方向---电池栏在上");
+
         self.fullScreen = NO;
 
     } break;
@@ -955,11 +1010,12 @@ static LSPlayerView* playerView = nil;
 #pragma mark - UIGestureDelegate
 - (BOOL)gestureRecognizer:(UIGestureRecognizer*)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer*)otherGestureRecognizer
 {
+    return YES;
     if (gestureRecognizer == self.panGesture && otherGestureRecognizer == self.pinchGesture) {
-        return NO;
+        return YES;
     }
     if (gestureRecognizer == self.pinchGesture && otherGestureRecognizer == self.panGesture) {
-        return NO;
+        return YES;
     }
     return YES;
 }
