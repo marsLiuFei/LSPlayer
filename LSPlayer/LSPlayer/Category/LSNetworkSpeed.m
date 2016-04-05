@@ -74,6 +74,7 @@ static LSNetworkSpeed* instance = nil;
 
     if (_timer == nil) {
         _timer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(checkNetworkSpeed) userInfo:nil repeats:YES];
+        [_timer fire];
     }
 }
 

@@ -24,6 +24,7 @@
 @property (weak, nonatomic) IBOutlet UIButton *fullButton;
 
 
+@property (weak, nonatomic) IBOutlet UILabel *speedLabel;
 
 +(instancetype)playerMaskView;
 

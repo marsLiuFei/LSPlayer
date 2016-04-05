@@ -14,7 +14,6 @@
 #import <AVKit/AVKit.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import "LSTopWindow.h"
-#import "LSNetworkSpeed.h"
 #define kLSPlayerViewContentOffset @"contentOffset"
 
 #define CellImageViewHeight 200
@@ -123,7 +122,7 @@ static LSTopWindow *window=nil;
 - (void)initPlayerViewEvents
 {
     
-        self.image = [self imageWithOriginalImage:[UIImage imageNamed:@"VideoCoverDefault"]];
+    //    self.image = [self imageWithOriginalImage:[UIImage imageNamed:@"VideoCoverDefault"]];
     self.lightLabel.hidden=YES;
     [self getVolume];
     //捏合手势
@@ -379,11 +378,6 @@ static LSTopWindow *window=nil;
 #pragma mark -  创建AVPlayer
 - (void)setVideoURL:(NSString*)videoURL
 {
-    [[LSNetworkSpeed shareNetworkSpeed]start];
-    self.playerMaskView.speedLabel.text=@"0kB/s";
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(log) name:LSDownloadNetworkSpeedNotificationKey object:nil];
-    self.playerMaskView.speedLabel.hidden=NO;
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(log) name:LSDownloadNetworkSpeedNotificationKey object:nil];
     _videoURL = videoURL;
     
     
@@ -428,6 +422,8 @@ static LSTopWindow *window=nil;
     else {
         if (self.locationType == LSPLayerViewLocationTypeMiddle) {
             self.frame = _currentFrame;
+            [self setNeedsLayout];
+            [self layoutIfNeeded];
         }
     }
     
@@ -455,6 +451,9 @@ static LSTopWindow *window=nil;
         [self.playerMaskView.slider addTarget:self action:@selector(sliderValueChanged:) forControlEvents:UIControlEventValueChanged];
     }
     
+    //移除原来的layer
+    [self.playerLayer removeFromSuperlayer];
+    self.playerLayer = nil;
     self.playerItem = nil;
     
     //只有不在中间时才计算点击cell的位置
@@ -470,14 +469,17 @@ static LSTopWindow *window=nil;
     //创建   item  layer   player
     self.playerItem = [AVPlayerItem playerItemWithURL:[NSURL URLWithString:videoURL]];
     self.player = [AVPlayer playerWithPlayerItem:self.playerItem];
+    self.playerLayer = [AVPlayerLayer playerLayerWithPlayer:self.player];
     
     //设置屏幕宽高
-    if ([((AVPlayerLayer*)self.layer).videoGravity isEqualToString:AVLayerVideoGravityResizeAspect]) {
-        ((AVPlayerLayer*)self.layer).videoGravity = AVLayerVideoGravityResizeAspect;
+    if ([self.playerLayer.videoGravity isEqualToString:AVLayerVideoGravityResizeAspect]) {
+        self.playerLayer.videoGravity = AVLayerVideoGravityResizeAspect;
     }
     else {
-        ((AVPlayerLayer*)self.layer).videoGravity = AVLayerVideoGravityResizeAspect;
+        self.playerLayer.videoGravity = AVLayerVideoGravityResizeAspect;
     }
+    [self.layer insertSublayer:self.playerLayer atIndex:0];
+    [self setNeedsLayout]; //需手动调一下layoutSubviews
     
     //播放
     [self.player setRate:1];
@@ -515,13 +517,13 @@ static LSTopWindow *window=nil;
 {
     
     //拖动改变视频播放进度
-    if (self.player.status == AVPlayerStatusReadyToPlay) {
+    if (_player.status == AVPlayerStatusReadyToPlay) {
         //计算出拖动的当前秒数
         CGFloat total = (CGFloat)_playerItem.duration.value / _playerItem.duration.timescale;
         NSInteger dragedSeconds = floorf(total * slider.value);
         //转换成CMTime才能给player来控制播放进度
         CMTime dragedCMTime = CMTimeMake(dragedSeconds, 1);
-        [self.player seekToTime:dragedCMTime completionHandler:^(BOOL finish) {
+        [_player seekToTime:dragedCMTime completionHandler:^(BOOL finish) {
             [self createTimer];
         }];
     }
@@ -751,8 +753,8 @@ window.contentView=nil;
     self.playerMaskView.slider.value = CMTimeGetSeconds([_playerItem currentTime]) / (_playerItem.duration.value / _playerItem.duration.timescale); //当前进度
     
     //当前播放时间
-    NSInteger proMin = (NSInteger)CMTimeGetSeconds([self.player currentTime]) / 60; //当前秒
-    NSInteger proSec = (NSInteger)CMTimeGetSeconds([self.player currentTime]) % 60; //当前分钟
+    NSInteger proMin = (NSInteger)CMTimeGetSeconds([_player currentTime]) / 60; //当前秒
+    NSInteger proSec = (NSInteger)CMTimeGetSeconds([_player currentTime]) % 60; //当前分钟
     
     //duration 总时长
     NSInteger durMin = (NSInteger)_playerItem.duration.value / _playerItem.duration.timescale / 60; //总分
@@ -773,8 +775,6 @@ window.contentView=nil;
 - (void)stopAnimation
 {
     [self.playerMaskView.activity stopAnimating];
-    [[LSNetworkSpeed shareNetworkSpeed] stop];
-    self.playerMaskView.speedLabel.hidden=YES;
     self.playerMaskView.activity.hidden = YES;
     self.playerMaskView.playButton.hidden = NO;
     self.playerMaskView.playButton.selected = YES;
@@ -912,7 +912,7 @@ window.contentView=nil;
 #pragma mark - 获取缓冲进度
 - (NSTimeInterval)availableDuration
 {
-    NSArray* loadedTimeRanges = [[self.player currentItem] loadedTimeRanges];
+    NSArray* loadedTimeRanges = [[_player currentItem] loadedTimeRanges];
     CMTimeRange timeRange = [loadedTimeRanges.firstObject CMTimeRangeValue]; // 获取缓冲区域
     float startSeconds = CMTimeGetSeconds(timeRange.start);
     float durationSeconds = CMTimeGetSeconds(timeRange.duration);
@@ -1066,15 +1066,6 @@ window.contentView=nil;
         }
     }
 }
-
-- (void)log{
-    
-    NSLog(@"%@",[LSNetworkSpeed shareNetworkSpeed].downloadNetworkSpeed);
-    self.playerMaskView.speedLabel.text=[LSNetworkSpeed shareNetworkSpeed].downloadNetworkSpeed;
-    
-}
-
-
 #pragma mark - 高斯模糊
 - (UIImage*)imageWithOriginalImage:(UIImage*)originalImage
 {
@@ -1119,17 +1110,12 @@ window.contentView=nil;
 #pragma mark - UIGestureDelegate
 - (BOOL)gestureRecognizer:(UIGestureRecognizer*)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer*)otherGestureRecognizer
 {
-    
-    NSLog(@"%@",otherGestureRecognizer.view.class);
-    if (gestureRecognizer == self.panGesture && [otherGestureRecognizer isKindOfClass:[UITapGestureRecognizer class]]) {
-        return NO;
-    }
     return YES;
     if (gestureRecognizer == self.panGesture && otherGestureRecognizer == self.pinchGesture) {
-        return NO;
+        return YES;
     }
     if (gestureRecognizer == self.pinchGesture && otherGestureRecognizer == self.panGesture) {
-        return NO;
+        return YES;
     }
     return YES;
 }
@@ -1147,14 +1133,12 @@ window.contentView=nil;
     return [AVPlayerLayer class];
 }
 
-- (AVPlayer *)player
-{
+- (AVPlayer *)player {
     return [(AVPlayerLayer *)[self layer] player];
 }
 
-- (void)setPlayer:(AVPlayer *)player{
-    
-    [((AVPlayerLayer *)[self layer]) setPlayer:player];
+- (void)setPlayer:(AVPlayer *)player {
+    [(AVPlayerLayer *)[self layer] setPlayer:player];
 }
 #pragma mark - AVPlayer通知测试
 

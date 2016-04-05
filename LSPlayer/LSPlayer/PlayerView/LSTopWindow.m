@@ -18,15 +18,15 @@
 
 -(void)setContentView:(UIView *)contentView
 {
-    _contentView=contentView;
     [self addSubview:contentView];
+    _contentView=contentView;
     
 }
 -(void)layoutSubviews
 {
     [super layoutSubviews];
     
-    self.contentView.frame=self.bounds;
+    _contentView.frame=self.bounds;
 }
 
 @end

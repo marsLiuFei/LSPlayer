@@ -19,7 +19,7 @@
                         <constraint firstAttribute="width" constant="39" id="Uly-aE-jid"/>
                         <constraint firstAttribute="height" constant="39" id="pnH-MV-Gto"/>
                     </constraints>
-                    <state key="normal" image="playMiniNormal"/>
+                    <state key="normal" image="playMiniNormal.png"/>
                     <state key="selected" image="Pause">
                         <color key="titleColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
                     </state>
@@ -46,34 +46,41 @@
                     <nil key="highlightedColor"/>
                 </label>
                 <slider opaque="NO" contentMode="scaleToFill" verticalCompressionResistancePriority="749" contentHorizontalAlignment="center" contentVerticalAlignment="center" minValue="0.0" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="kqE-GT-thl">
-                    <rect key="frame" x="18" y="288.5" width="303" height="2.5"/>
+                    <rect key="frame" x="18" y="288" width="303" height="2.5"/>
                 </slider>
                 <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WdZ-1w-GcH" userLabel="close">
                     <rect key="frame" x="5" y="5" width="21" height="22"/>
                     <state key="normal" image="close_btn_normal"/>
                     <state key="highlighted" image="close_btn_sel"/>
                 </button>
-                <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="white" translatesAutoresizingMaskIntoConstraints="NO" id="SYs-EY-pBm" userLabel="acitivity">
-                    <rect key="frame" x="179" y="113" width="80" height="80"/>
-                    <constraints>
-                        <constraint firstAttribute="width" constant="80" id="hTL-tg-zXi"/>
-                        <constraint firstAttribute="height" constant="80" id="rVF-UR-hlb"/>
-                    </constraints>
-                </activityIndicatorView>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="0kB/s" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ira-cp-gMi">
+                    <rect key="frame" x="202" y="179" width="34" height="21"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                    <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                    <nil key="highlightedColor"/>
+                </label>
                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ICn-Ue-I1M" userLabel="full">
                     <rect key="frame" x="402" y="271" width="36" height="36"/>
                     <constraints>
                         <constraint firstAttribute="height" constant="36" id="Tfw-vc-yya"/>
                         <constraint firstAttribute="width" constant="36" id="m6a-VO-aEA"/>
                     </constraints>
-                    <state key="normal" title="B" image="enterFullNormal"/>
+                    <state key="normal" title="B" image="enterFullNormal.png"/>
                     <state key="highlighted" image="enterFullSelected"/>
                 </button>
+                <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="white" translatesAutoresizingMaskIntoConstraints="NO" id="SYs-EY-pBm" userLabel="acitivity">
+                    <rect key="frame" x="179" y="112" width="80" height="80"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="80" id="hTL-tg-zXi"/>
+                        <constraint firstAttribute="height" constant="80" id="rVF-UR-hlb"/>
+                    </constraints>
+                </activityIndicatorView>
             </subviews>
             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
             <constraints>
                 <constraint firstAttribute="bottom" secondItem="kqE-GT-thl" secondAttribute="bottom" constant="15" id="1PS-VU-4g7"/>
                 <constraint firstItem="4YY-qw-k1S" firstAttribute="centerY" secondItem="hBx-gY-gXe" secondAttribute="centerY" id="29V-QX-Z6w"/>
+                <constraint firstItem="ira-cp-gMi" firstAttribute="top" secondItem="SYs-EY-pBm" secondAttribute="bottom" constant="-13" id="2eI-G1-U4w"/>
                 <constraint firstItem="kqE-GT-thl" firstAttribute="leading" secondItem="cpL-CN-v1f" secondAttribute="leading" id="DzS-Bb-aOj"/>
                 <constraint firstAttribute="trailing" secondItem="cpL-CN-v1f" secondAttribute="trailing" constant="20" id="FGe-3w-Qss"/>
                 <constraint firstItem="4YY-qw-k1S" firstAttribute="centerY" secondItem="cpL-CN-v1f" secondAttribute="centerY" id="Fyg-lf-Zqa"/>
@@ -101,9 +108,11 @@
                 <constraint firstAttribute="trailing" secondItem="ICn-Ue-I1M" secondAttribute="trailing" id="dOn-WY-DNi"/>
                 <constraint firstItem="cpL-CN-v1f" firstAttribute="trailing" secondItem="kqE-GT-thl" secondAttribute="trailing" id="e7z-lN-Gez"/>
                 <constraint firstItem="4YY-qw-k1S" firstAttribute="centerY" secondItem="5OY-kK-AfU" secondAttribute="centerY" id="fgx-gz-77P"/>
+                <constraint firstItem="ira-cp-gMi" firstAttribute="centerX" secondItem="hBx-gY-gXe" secondAttribute="centerX" id="hBn-k0-zsp"/>
                 <constraint firstItem="cpL-CN-v1f" firstAttribute="width" secondItem="kqE-GT-thl" secondAttribute="width" id="iI5-Ps-Ae0"/>
                 <constraint firstItem="cpL-CN-v1f" firstAttribute="centerY" secondItem="kqE-GT-thl" secondAttribute="centerY" id="iO0-wG-eXl"/>
                 <constraint firstAttribute="bottom" secondItem="ICn-Ue-I1M" secondAttribute="bottom" constant="15" id="iQW-YL-eYH"/>
+                <constraint firstItem="ira-cp-gMi" firstAttribute="top" secondItem="hBx-gY-gXe" secondAttribute="top" constant="159" id="jzn-c2-n6R"/>
                 <constraint firstItem="cpL-CN-v1f" firstAttribute="height" secondItem="kqE-GT-thl" secondAttribute="height" id="ksG-N0-2e9"/>
                 <constraint firstItem="kqE-GT-thl" firstAttribute="centerY" secondItem="hBx-gY-gXe" secondAttribute="centerY" id="llj-5q-a6l"/>
                 <constraint firstAttribute="bottom" secondItem="5OY-kK-AfU" secondAttribute="bottom" constant="20" id="pOd-cj-XrY"/>
@@ -113,6 +122,7 @@
             <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
             <variation key="default">
                 <mask key="constraints">
+                    <exclude reference="jzn-c2-n6R"/>
                     <exclude reference="FGe-3w-Qss"/>
                     <exclude reference="Hkc-9o-KsB"/>
                     <exclude reference="NjI-Of-5sM"/>
@@ -142,6 +152,7 @@
                 <outlet property="progressCenterY" destination="Fyg-lf-Zqa" id="3qk-5j-RLi"/>
                 <outlet property="progressView" destination="cpL-CN-v1f" id="1pg-RR-3Ad"/>
                 <outlet property="slider" destination="kqE-GT-thl" id="zE7-SN-K6n"/>
+                <outlet property="speedLabel" destination="ira-cp-gMi" id="002-KK-0qZ"/>
                 <outlet property="totalTimeLabel" destination="5OY-kK-AfU" id="6sz-n8-t8G"/>
             </connections>
             <point key="canvasLocation" x="46" y="-146.5"/>
@@ -151,8 +162,8 @@
         <image name="Pause" width="44" height="44"/>
         <image name="close_btn_normal" width="21" height="21"/>
         <image name="close_btn_sel" width="21" height="21"/>
-        <image name="enterFullNormal" width="36" height="36"/>
+        <image name="enterFullNormal.png" width="36" height="36"/>
         <image name="enterFullSelected" width="36" height="36"/>
-        <image name="playMiniNormal" width="100" height="100"/>
+        <image name="playMiniNormal.png" width="100" height="100"/>
     </resources>
 </document>
