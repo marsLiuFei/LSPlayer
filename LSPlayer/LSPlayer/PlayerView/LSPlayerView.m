@@ -13,7 +13,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <MediaPlayer/MediaPlayer.h>
-
+#import "LSTopWindow.h"
 #define kLSPlayerViewContentOffset @"contentOffset"
 
 #define CellImageViewHeight 200
@@ -86,13 +86,32 @@
 //标记是否失去焦点
 @property (nonatomic, assign,getter=isLoseActive) BOOL loseActive;
 
+@property (nonatomic, assign) BOOL leftVertialMoved;
+
+@property (nonatomic,strong)  UISlider * volumeViewSlider;
+@property (weak, nonatomic) IBOutlet UILabel *lightLabel;
+
+
 @end
 
 @implementation LSPlayerView
 
 static LSPlayerView* playerView = nil;
+static LSTopWindow *window=nil;
+
+
+-(LSTopWindow*)topWindow
+{
+    if (window==nil) {
+        window=[[LSTopWindow alloc]init];
+        window.backgroundColor=[UIColor redColor];
+        window.windowLevel=UIWindowLevelAlert;
+    }
+    return window;
+}
 + (instancetype)playerView
 {
+    
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         playerView = [[[NSBundle mainBundle] loadNibNamed:@"LSPlayerView" owner:nil options:nil] lastObject];
@@ -102,15 +121,16 @@ static LSPlayerView* playerView = nil;
 #pragma mark - 初始化playerView事件
 - (void)initPlayerViewEvents
 {
-
-    self.image = [self imageWithOriginalImage:[UIImage imageNamed:@"VideoCoverDefault"]];
     
-   //捏合手势
+    //    self.image = [self imageWithOriginalImage:[UIImage imageNamed:@"VideoCoverDefault"]];
+    self.lightLabel.hidden=YES;
+    [self getVolume];
+    //捏合手势
     UIPinchGestureRecognizer* pinGesture = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinchGesture:)];
     [self addGestureRecognizer:pinGesture];
     pinGesture.enabled = NO;
     self.pinchGesture = pinGesture;
-
+    
     //拖拽手势
     UIPanGestureRecognizer* panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
     [self addGestureRecognizer:panGesture];
@@ -124,9 +144,9 @@ static LSPlayerView* playerView = nil;
     //重新尝试按钮
     [self.retryButton addTarget:self action:@selector(retryButtonClick:) forControlEvents:UIControlEventTouchUpInside];
     
-
+    
     self.locationType = LSPLayerViewLocationTypeMiddle; //需放在添加手势后面 因为手势禁用根据所处位置在set方法里
-
+    
     //监听失去焦点通知
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(willResignActive) name:UIApplicationWillResignActiveNotification object:nil];
     
@@ -135,7 +155,7 @@ static LSPlayerView* playerView = nil;
 }
 - (void)awakeFromNib
 {
-
+    
     [self listeningRotating];
     [self initPlayerViewEvents];
 }
@@ -143,7 +163,7 @@ static LSPlayerView* playerView = nil;
 
 - (void)handlePinchGesture:(UIPinchGestureRecognizer*)gesture
 {
-
+    
     NSLog(@"捏合手势");
     if (gesture.state == UIGestureRecognizerStateEnded||gesture.state == UIGestureRecognizerStateCancelled||gesture.state == UIGestureRecognizerStateFailed){
         self.panGesture.enabled=YES;
@@ -151,28 +171,32 @@ static LSPlayerView* playerView = nil;
     }
     self.panGesture.enabled=NO;
     //    self.transform=CGAffineTransformScale(self.transform, gesture.scale, gesture.scale);
-    CGSize newSize=CGSizeMake(self.frame.size.width*gesture.scale, self.frame.size.height*gesture.scale);
+    CGSize newSize=CGSizeMake([self topWindow].frame.size.width*gesture.scale, [self topWindow].frame.size.height*gesture.scale);
     CGSize size = [UIScreen mainScreen].bounds.size;
     if (newSize.width >size.width) {
         
         NSLog(@"捏合手势结束了啦啦啦啦");
-//        self.transform = CGAffineTransformIdentity;
+        //        self.transform = CGAffineTransformIdentity;
         gesture.enabled = NO;
         self.panGesture.enabled=NO;
         [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:0.5 initialSpringVelocity:3 options:UIViewAnimationOptionCurveEaseOut animations:^{
-
-            self.frame = CGRectMake(0, self.frame.origin.y, size.width, CellImageViewHeight);
+            
+            [self topWindow].frame = CGRectMake(0, [self topWindow].frame.origin.y, size.width, CellImageViewHeight);
             [self setNeedsLayout];
             [self layoutIfNeeded];
         }
-            completion:^(BOOL finished) {
-                gesture.enabled = YES;
-                self.panGesture.enabled=YES;
-
-            }];
+                         completion:^(BOOL finished) {
+                             gesture.enabled = YES;
+                             self.panGesture.enabled=YES;
+                             
+                         }];
     }else{
-    self.layer.transform = CATransform3DScale(self.layer.transform, gesture.scale, gesture.scale, 1);
-        self.playerMaskView.transform=CGAffineTransformMakeScale(1, 1);
+//        [self topWindow].transform = CGAffineTransformScale([self topWindow].transform,gesture.scale, gesture.scale );
+//        self.playerMaskView.transform=CGAffineTransformMakeScale(1, 1);
+        CGRect frame=[self topWindow].frame;
+        CGSize size=frame.size;
+        CGFloat scale=gesture.scale;
+        [self topWindow].frame=CGRectMake(frame.origin.x-(size.width*scale-size.width)/2, frame.origin.y-(size.height*scale-size.height)/2, size.width*scale, size.height*scale);
     }
     [gesture setScale:1];
 }
@@ -180,6 +204,51 @@ static LSPlayerView* playerView = nil;
 - (void)handlePanGesture:(UIPanGestureRecognizer*)gesture
 {
     if (gesture.numberOfTouches>1)return;
+    
+    //全屏状态下
+    if (self.fullScreen) {
+        
+        CGPoint velocity= [gesture velocityInView:gesture.view];
+        switch (gesture.state) {
+            case UIGestureRecognizerStateBegan:
+            {
+                if (fabs(velocity.x)>fabs( velocity.y)) {//水平移动
+                    
+                }else{
+                    if ([gesture locationInView:gesture.view].x<[UIScreen mainScreen].bounds.size.width/2) {//左侧
+                        self.leftVertialMoved=YES;
+                    }else{//右侧
+                        self.leftVertialMoved=NO;
+                    }
+                }
+                
+                break;
+            }
+            case UIGestureRecognizerStateChanged:
+                if (self.leftVertialMoved) {
+                    [UIScreen mainScreen].brightness -=velocity.y/2000;
+                    self.lightLabel.text=[NSString stringWithFormat:@"亮度:%.0lf",[UIScreen mainScreen].brightness*100];
+                    self.lightLabel.hidden=NO;
+                    
+                }else{
+                    self.volumeViewSlider.value-=velocity.y/2000;
+                }
+                
+                break;
+            case UIGestureRecognizerStateEnded:
+            case UIGestureRecognizerStateFailed:
+            case UIGestureRecognizerStateCancelled:
+                self.lightLabel.hidden=YES;
+                break;
+            default:
+                break;
+        }
+        
+        
+        
+        return;
+    }
+    //不在全屏状态下 是拖动
     if (self.locationType == LSPLayerViewLocationTypeTop) {
         //从上开始滑动
         [self handlePanTopGesture:gesture];
@@ -189,91 +258,103 @@ static LSPlayerView* playerView = nil;
         [self handlePanBottomGesture:gesture];
     }
 }
+//获取系统音量
+- (void)getVolume
+{
+    MPVolumeView *volumeView = [[MPVolumeView alloc] init];
+    _volumeViewSlider = nil;
+    for (UIView *view in [volumeView subviews]){
+        if ([view.class.description isEqualToString:@"MPVolumeSlider"]){
+            _volumeViewSlider = (UISlider *)view;
+            break;
+        }
+    }
+}
 - (void)handlePanBottomGesture:(UIPanGestureRecognizer*)gesture
 {
     CGPoint point = [gesture locationInView:[UIApplication sharedApplication].keyWindow];
     static CGPoint center;
     static CGPoint lastPoint;
     switch (gesture.state) {
-
-    case UIGestureRecognizerStateBegan:
-        lastPoint = point;
-        center = self.center;
-
-        break;
-    case UIGestureRecognizerStateChanged: {
-        NSLog(@"size==%@   拖拽位置   %@", NSStringFromCGPoint(self.center), NSStringFromCGPoint(point));
-        self.center = CGPointMake(center.x + point.x - lastPoint.x, center.y + point.y - lastPoint.y);
-        //            self.transform=CGAffineTransformMakeTranslation(point.x, point.y);
-        //            [gesture setTranslation:CGPointZero inView:gesture.view];
-        break;
-    }
-    case UIGestureRecognizerStateEnded:
-    case UIGestureRecognizerStateCancelled:
-    case UIGestureRecognizerStateFailed:
-
-        break;
-    default:
-        break;
+            
+        case UIGestureRecognizerStateBegan:
+            lastPoint = point;
+            center = window.center;
+            
+            break;
+        case UIGestureRecognizerStateChanged: {
+            NSLog(@"size==%@   拖拽位置   %@", NSStringFromCGPoint(self.center), NSStringFromCGPoint(point));
+            window.center = CGPointMake(center.x + point.x - lastPoint.x, center.y + point.y - lastPoint.y);
+            //            self.transform=CGAffineTransformMakeTranslation(point.x, point.y);
+            //            [gesture setTranslation:CGPointZero inView:gesture.view];
+            break;
+        }
+        case UIGestureRecognizerStateEnded:
+        case UIGestureRecognizerStateCancelled:
+        case UIGestureRecognizerStateFailed:
+            
+            break;
+        default:
+            break;
     }
 }
 - (void)handlePanTopGesture:(UIPanGestureRecognizer*)gesture
 {
     CGPoint point = [gesture translationInView:gesture.view];
     switch (gesture.state) {
-    case UIGestureRecognizerStatePossible:
-    case UIGestureRecognizerStateBegan:
-    case UIGestureRecognizerStateChanged:
-        self.transform = CGAffineTransformTranslate(self.transform, 0, point.y);
-        [gesture setTranslation:CGPointZero inView:gesture.view];
-        break;
-    case UIGestureRecognizerStateEnded:
-    case UIGestureRecognizerStateCancelled:
-    case UIGestureRecognizerStateFailed:
-        //是从顶部拖动
-        if (self.locationType == LSPLayerViewLocationTypeTop) {
-            if (self.frame.origin.y + self.frame.size.height / 2 > [UIScreen mainScreen].bounds.size.height / 2) {
-                [UIView animateWithDuration:0.5 animations:^{
-                    self.locationType = LSPLayerViewLocationTypeBottom;
-                    self.transform = CGAffineTransformIdentity;
-                    [self updataPlayerViewBottomFrame];
-
-                }];
+        case UIGestureRecognizerStatePossible:
+        case UIGestureRecognizerStateBegan:
+        case UIGestureRecognizerStateChanged:
+            window.transform = CGAffineTransformTranslate(window.transform, 0, point.y);
+            [gesture setTranslation:CGPointZero inView:gesture.view];
+            break;
+        case UIGestureRecognizerStateEnded:
+        case UIGestureRecognizerStateCancelled:
+        case UIGestureRecognizerStateFailed:
+            //是从顶部拖动
+            if (self.locationType == LSPLayerViewLocationTypeTop) {
+                if (window.frame.origin.y + window.frame.size.height / 2 > [UIScreen mainScreen].bounds.size.height / 2) {
+                    [UIView animateWithDuration:0.5 animations:^{
+                        self.locationType = LSPLayerViewLocationTypeBottom;
+                        window.transform = CGAffineTransformIdentity;
+                        [self updataPlayerViewBottomFrame];
+                        
+                    }];
+                }
+                else {
+                    [UIView animateWithDuration:0.5 animations:^{
+                        window.transform = CGAffineTransformIdentity;
+                    }];
+                }
             }
-            else {
-                [UIView animateWithDuration:0.5 animations:^{
-                    self.transform = CGAffineTransformIdentity;
-                }];
-            }
-        }
-        break;
+            break;
     }
 }
 #pragma mark - playerView单击手势
 - (void)tapClick
 {
-
+    
     if (self.isFullScreen) {
         [self topAndMiddleTapClick];
         return;
     }
     switch (self.locationType) {
-    case LSPLayerViewLocationTypeMiddle: {
-        [self topAndMiddleTapClick];
-        break;
-    }
-    case LSPLayerViewLocationTypeTop: {
-        [self topAndMiddleTapClick];
-        break;
-    }
-    case LSPLayerViewLocationTypeBottom: {
-        [self bottomTapClick];
-        break;
-    }
-    case LSPLayerViewLocationTypeDragging: {
-
-        break;
-    }
+        case LSPLayerViewLocationTypeMiddle: {
+            [self topAndMiddleTapClick];
+            break;
+        }
+        case LSPLayerViewLocationTypeTop: {
+            [self topAndMiddleTapClick];
+            break;
+        }
+        case LSPLayerViewLocationTypeBottom: {
+            [self bottomTapClick];
+            break;
+        }
+        case LSPLayerViewLocationTypeDragging: {
+            
+            break;
+        }
     }
 }
 #pragma mark - BottomTapClick
@@ -296,9 +377,10 @@ static LSPlayerView* playerView = nil;
 - (void)setVideoURL:(NSString*)videoURL
 {
     _videoURL = videoURL;
-
+    
+    
     playerView.hidden = NO;
-
+    
     //一些值都清空还原
     self.playerMaskView.progressView.progress = 0;
     self.playerMaskView.slider.value = 0;
@@ -306,31 +388,31 @@ static LSPlayerView* playerView = nil;
     self.playerMaskView.totalTimeLabel.text = @"/00:00";
     self.isFailed = NO;
     self.completedPlay = NO;
-
+    
     //恢复显示maskView及重置数值
     [self showMaskView];
-
+    
     //每次都关闭定时器 只有readyPlay时才打开
     [self stopTimer];
-
+    
     //每次都先移除监听
     [[NSNotificationCenter defaultCenter] removeObserver:self name:AVPlayerItemDidPlayToEndTimeNotification object:self.playerItem];
-
+    
     if (self.playerItem) {
         [self.playerItem removeObserver:self forKeyPath:@"loadedTimeRanges"];
         [self.playerItem removeObserver:self forKeyPath:@"status"];
     }
-
+    
     //第一次才添加
     if (self.superview == nil) {
         [self.tempSuperView addSubview:self];
     }
     if (self.locationType == LSPLayerViewLocationTypeMiddle) {
-
+        
         [self.tempSuperView addObserver:self forKeyPath:kLSPlayerViewContentOffset options:NSKeyValueObservingOptionNew context:nil];
         self.monitoring = YES;
     }
-
+    
     //设置frame
     if (self.isFullScreen) {
         [self updatePlayerViewFrame];
@@ -342,23 +424,23 @@ static LSPlayerView* playerView = nil;
             [self layoutIfNeeded];
         }
     }
-
+    
     //第一次才创建
     if (self.playerMaskView == nil) {
         LSPlayerMaskView* playerMaskView = [LSPlayerMaskView playerMaskView];
         [self addSubview:playerMaskView];
         [self bringSubviewToFront:self.retryButton];
         self.playerMaskView = playerMaskView;
-
+        
         //中间按钮点击事件
         [self.playerMaskView.playButton addTarget:self action:@selector(playOrPause:) forControlEvents:UIControlEventTouchUpInside];
-
+        
         //全屏按钮点击事件
         [self.playerMaskView.fullButton addTarget:self action:@selector(clickFullScreen) forControlEvents:UIControlEventTouchUpInside];
-
+        
         //关闭按钮点击事件
         [self.playerMaskView.closeButton addTarget:self action:@selector(closeClick) forControlEvents:UIControlEventTouchUpInside];
-
+        
         //slider事件
         [self.playerMaskView.slider addTarget:self action:@selector(sliderTouchDown) forControlEvents:UIControlEventTouchDown];
         [self.playerMaskView.slider addTarget:self action:@selector(sliderTouchCancel:) forControlEvents:UIControlEventTouchCancel];
@@ -366,12 +448,12 @@ static LSPlayerView* playerView = nil;
         [self.playerMaskView.slider addTarget:self action:@selector(sliderTouchCancel:) forControlEvents:UIControlEventTouchUpInside];
         [self.playerMaskView.slider addTarget:self action:@selector(sliderValueChanged:) forControlEvents:UIControlEventValueChanged];
     }
-
+    
     //移除原来的layer
     [self.playerLayer removeFromSuperlayer];
     self.playerLayer = nil;
     self.playerItem = nil;
-
+    
     //只有不在中间时才计算点击cell的位置
     if (self.locationType == LSPLayerViewLocationTypeMiddle) {
         [self handleScrollOffsetWithDict:nil]; //点击时处理位置
@@ -381,12 +463,12 @@ static LSPlayerView* playerView = nil;
         [self.player pause];
         self.player = nil;
     }
-
+    
     //创建   item  layer   player
     self.playerItem = [AVPlayerItem playerItemWithURL:[NSURL URLWithString:videoURL]];
     self.player = [AVPlayer playerWithPlayerItem:self.playerItem];
     self.playerLayer = [AVPlayerLayer playerLayerWithPlayer:self.player];
-
+    
     //设置屏幕宽高
     if ([self.playerLayer.videoGravity isEqualToString:AVLayerVideoGravityResizeAspect]) {
         self.playerLayer.videoGravity = AVLayerVideoGravityResizeAspect;
@@ -396,26 +478,26 @@ static LSPlayerView* playerView = nil;
     }
     [self.layer insertSublayer:self.playerLayer atIndex:0];
     [self setNeedsLayout]; //需手动调一下layoutSubviews
-
+    
     //播放
     [self.player setRate:1];
     [self.player play];
-
+    
     //开始加载动画
     [self startAnimation];
-
+    
     // 监听缓冲进度
     [self.playerItem addObserver:self forKeyPath:@"loadedTimeRanges" options:NSKeyValueObservingOptionNew context:nil];
     //监听播放状态
     [self.playerItem addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];
-
+    
     //AVPlayer播放完成通知  item has played to its end time
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(moviePlayDidEnd:) name:AVPlayerItemDidPlayToEndTimeNotification object:self.playerItem];
-
+    
     //AVPlayerItemPlaybackStalledNotification media did not arrive in time to continue playback
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(stall) name:AVPlayerItemPlaybackStalledNotification object:self.playerItem];
-
-    //    [self testAVPlayerNotification];
+    
+    //        [self testAVPlayerNotification];
 }
 #pragma mark - slider开始触摸
 - (void)sliderTouchDown
@@ -431,7 +513,7 @@ static LSPlayerView* playerView = nil;
 #pragma mark - sliderr触摸取消
 - (void)sliderTouchCancel:(UISlider*)slider
 {
-
+    
     //拖动改变视频播放进度
     if (_player.status == AVPlayerStatusReadyToPlay) {
         //计算出拖动的当前秒数
@@ -463,7 +545,7 @@ static LSPlayerView* playerView = nil;
 #pragma mark -  蒙版中间按钮点击事件
 - (void)playOrPause:(UIButton*)sender
 {
-
+    
     if (sender.selected) {
         [self.player pause];
         [self stopTimer];
@@ -479,7 +561,7 @@ static LSPlayerView* playerView = nil;
         }
     }
     if (self.locationType == LSPLayerViewLocationTypeBottom) {
-            sender.hidden = !sender.selected;
+        sender.hidden = !sender.selected;
     }
     else {
         [self cancelPreviousPerformAndHideMaskView]; //因为触碰maskView了所以需要将延迟隐藏事件重置为7s
@@ -490,9 +572,10 @@ static LSPlayerView* playerView = nil;
 #pragma mark - 关闭按钮点击事件
 - (void)closeClick
 {
+    window.hidden=YES;
     NSLog(@"关闭了了了了了了了了%s", __func__);
     //关闭时一定要停止监听contentOffset
-
+    
     //注意视频框加入在最上面时已经停止监听了 但是此时重新调用setVideoURL方法又会监听 然后点击关闭按钮 然后滚动tableView还会掉监听方法 移除也不好立刻停止而是毫秒级调用一次
     self.monitoring = NO;
     if (self.isMonitoring) {
@@ -506,7 +589,7 @@ static LSPlayerView* playerView = nil;
     self.playerMaskView.slider.hidden = NO;
     self.playerMaskView.currentTimeLabel.hidden = NO;
     self.playerMaskView.totalTimeLabel.hidden = NO;
-
+    
     [self.player pause];
     
     if (self.superview != self.tempSuperView) {
@@ -551,43 +634,53 @@ static LSPlayerView* playerView = nil;
 - (void)setFullScreen:(BOOL)fullScreen
 {
     if (fullScreen) {//由全屏进入后台 在进入前台 会显示全屏 但是一旋转frame跟全屏一样
-        self.panGesture.enabled = NO;
         self.pinchGesture.enabled = NO;
-        [[UIApplication sharedApplication] setStatusBarHidden:YES];
+        //        [[UIApplication sharedApplication] setStatusBarHidden:YES];
         if (!(self.fullScreen&&fullScreen)) {
-            self.portraitFrame = self.frame;
+            if (self.locationType==LSPLayerViewLocationTypeMiddle) {
+                self.portraitFrame = self.frame;
+            }else{
+                self.portraitFrame = [self topWindow].bounds;
+            }
         }
+        [self topWindow].hidden=YES;
         [self handleTimeLabelAndSliderWithHidden:NO];
         self.playerMaskView.playButton.hidden = NO;
         [self updatePlayerViewFrame];
     }
     else {
         if (self.locationType == LSPLayerViewLocationTypeBottom) {
+            [self topWindow].hidden=NO;
+            [self topWindow].contentView=self;
             self.playerMaskView.hidden = NO;
             [self handleTimeLabelAndSliderWithHidden:YES];
             self.panGesture.enabled = YES;
             self.pinchGesture.enabled = YES;
         }
         if (self.locationType == LSPLayerViewLocationTypeMiddle) {
+            [self topWindow].hidden=YES;
             [self.tempSuperView addSubview:self];
             self.panGesture.enabled = NO;
             self.pinchGesture.enabled = NO;
             self.playerMaskView.closeButton.hidden=YES;
-
+            
+            //进入后台也会发出方向改变通知 但如果此前没有进入横屏过此时portraitFrame为 0
+            if (!CGRectIsEmpty(self.portraitFrame)) {
+                self.frame = self.portraitFrame;
+                [self setNeedsLayout];
+                [self layoutIfNeeded];
+            }
             
         }
         else if (self.locationType == LSPLayerViewLocationTypeTop) {
+            [self topWindow].contentView=self;
+            [self topWindow].hidden=NO;
             self.panGesture.enabled = YES;
             self.pinchGesture.enabled = YES;
-
+            
             //            [self.tempSuperView addSubview:self];
         }
-        //进入后台也会发出方向改变通知 但如果此前没有进入横屏过此时portraitFrame为 0
-        if (!CGRectIsEmpty(self.portraitFrame)) {
-            self.frame = self.portraitFrame;
-            [self setNeedsLayout];
-            [self layoutIfNeeded];
-        }
+      
     }
     _fullScreen = fullScreen;
 }
@@ -605,11 +698,11 @@ static LSPlayerView* playerView = nil;
         [UIView animateWithDuration:0.5 animations:^{
             self.playerMaskView.hidden = NO;
         }
-            completion:^(BOOL finished) {
-                self.hideMaskView = NO;
-                [self cancelPreviousPerformAndHideMaskView];
-
-            }];
+                         completion:^(BOOL finished) {
+                             self.hideMaskView = NO;
+                             [self cancelPreviousPerformAndHideMaskView];
+                             
+                         }];
     }
 }
 #pragma mark -重新将延迟事件设置为7s
@@ -630,20 +723,19 @@ static LSPlayerView* playerView = nil;
         [UIView animateWithDuration:0.5 animations:^{
             self.playerMaskView.hidden = YES;
         }
-            completion:^(BOOL finished) {
-                self.hideMaskView = YES;
-
-            }];
+                         completion:^(BOOL finished) {
+                             self.hideMaskView = YES;
+                             
+                         }];
     }
 }
 
 #pragma mark - 横屏frame
 - (void)updatePlayerViewFrame
 {
-    if (self.locationType == LSPLayerViewLocationTypeMiddle) {
-        //如果竖屏显示时在中间显示则superView为tableView
-        [[UIApplication sharedApplication].keyWindow addSubview:self];
-    }
+    
+    //如果竖屏显示时在中间显示则superView为tableView
+    [[UIApplication sharedApplication].keyWindow addSubview:self];
     self.frame = [UIScreen mainScreen].bounds;
     [self setNeedsLayout];
     [self layoutIfNeeded];
@@ -654,15 +746,15 @@ static LSPlayerView* playerView = nil;
     NSInteger b = CMTimeGetSeconds([_playerItem currentTime]);
     //    NSLog(@"sss======%ld", b);
     self.playerMaskView.slider.value = CMTimeGetSeconds([_playerItem currentTime]) / (_playerItem.duration.value / _playerItem.duration.timescale); //当前进度
-
+    
     //当前播放时间
     NSInteger proMin = (NSInteger)CMTimeGetSeconds([_player currentTime]) / 60; //当前秒
     NSInteger proSec = (NSInteger)CMTimeGetSeconds([_player currentTime]) % 60; //当前分钟
-
+    
     //duration 总时长
     NSInteger durMin = (NSInteger)_playerItem.duration.value / _playerItem.duration.timescale / 60; //总分
     NSInteger durSec = (NSInteger)_playerItem.duration.value / _playerItem.duration.timescale % 60; //总秒
-
+    
     self.playerMaskView.currentTimeLabel.text = [NSString stringWithFormat:@"%02ld:%02ld", proMin, proSec];
     self.playerMaskView.totalTimeLabel.text = [NSString stringWithFormat:@"/%02ld:%02ld", durMin, durSec];
 }
@@ -681,7 +773,7 @@ static LSPlayerView* playerView = nil;
     self.playerMaskView.activity.hidden = YES;
     self.playerMaskView.playButton.hidden = NO;
     self.playerMaskView.playButton.selected = YES;
-
+    
     if (self.locationType == LSPLayerViewLocationTypeBottom) {
         self.playerMaskView.playButton.hidden = YES;
     }
@@ -730,7 +822,7 @@ static LSPlayerView* playerView = nil;
         CGFloat progress = timeInterval / totalDuration;
         [self.playerMaskView.progressView setProgress:progress];
     }
-
+    
     if (self.tempSuperView == nil)
         return;
     if (self.locationType != LSPLayerViewLocationTypeMiddle)
@@ -746,7 +838,6 @@ static LSPlayerView* playerView = nil;
             return;
         [self handleScrollOffsetWithDict:change];
     }
-    NSLog(@"%s", __func__);
 }
 #pragma mark - 当tableview滚动时处理playerView的位置
 - (void)handleScrollOffsetWithDict:(NSDictionary*)dict
@@ -755,11 +846,11 @@ static LSPlayerView* playerView = nil;
     //测试证明在点击关闭按钮时会掉此方法
     UITableView* tableView = (UITableView*)self.tempSuperView;
     LSPlayerView* playerView = [LSPlayerView playerView];
-
+    
     UITableViewCell* cell;
     CGRect rect;
     static NSInteger count;
-
+    
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         count = [tableView.dataSource numberOfSectionsInTableView:tableView];
@@ -772,13 +863,13 @@ static LSPlayerView* playerView = nil;
         cell = [tableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:self.index inSection:0]];
         rect = [tableView rectForRowAtIndexPath:[NSIndexPath indexPathForRow:self.index inSection:0]];
     }
-
+    
     CGFloat top = tableView.contentInset.top;
     CGPoint point = tableView.contentOffset;
     CGFloat y = point.y + top;
     if (self.currentFrame.origin.y - y > self.tempSuperView.frame.size.height - CellImageViewHeight) { //在底下
         playerView.locationType = LSPLayerViewLocationTypeBottom;
-
+        
         [self updataPlayerViewBottomFrame];
         //        NSLog(@"在下面");
     }
@@ -794,8 +885,10 @@ static LSPlayerView* playerView = nil;
     CGSize size = [UIScreen mainScreen].bounds.size;
     //计算出tableView在window上的可视位置
     CGRect rect = CGRectIntersection([UIApplication sharedApplication].keyWindow.frame, self.tempSuperView.frame);
-    self.frame = CGRectMake(size.width / 2.0, CGRectGetMaxY(rect) - CellImageViewHeight / 2.0, size.width / 2, CellImageViewHeight / 2.0);
-    [[UIApplication sharedApplication].keyWindow addSubview:self];
+    [self topWindow].frame = CGRectMake(size.width / 2.0, CGRectGetMaxY(rect) - CellImageViewHeight / 2.0, size.width / 2, CellImageViewHeight / 2.0);
+    [self topWindow].hidden=NO;
+    [[self topWindow] addSubview:self];
+    self.frame=[self topWindow].bounds;
     //强制让系统调用layoutSubviews 两个方法必须同时写
     [self setNeedsLayout]; //是标记 异步刷新 会调但是慢
     [self layoutIfNeeded]; //加上此代码立刻刷新
@@ -803,8 +896,10 @@ static LSPlayerView* playerView = nil;
 #pragma mark - 顶部视频框frame
 - (void)updataPlayerViewTopFrame
 {
-    [[UIApplication sharedApplication].keyWindow addSubview:self];
-    self.frame = CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, CellImageViewHeight);
+    [self topWindow].frame=CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, CellImageViewHeight);
+    [self topWindow].hidden=NO;
+    [[self topWindow] addSubview:self];
+    self.frame = window.bounds;
     //强制让系统调用layoutSubviews 两个方法必须同时写
     [self setNeedsLayout]; //是标记 异步刷新 会调但是慢
     [self layoutIfNeeded]; //加上此代码立刻刷新
@@ -877,43 +972,43 @@ static LSPlayerView* playerView = nil;
 }
 - (void)handleDeviceOrientationChange
 {
-
+    
     if (self.isLoseActive) return;
     UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
     UIInterfaceOrientation interfaceOrientation = (UIInterfaceOrientation)orientation;
-//    if (self.lastDeviceOrientation==orientation) return;
-//    self.lastDeviceOrientation=orientation;
+    //    if (self.lastDeviceOrientation==orientation) return;
+    //    self.lastDeviceOrientation=orientation;
     switch (interfaceOrientation) {
-
-    case UIInterfaceOrientationPortraitUpsideDown: {
-        NSLog(@"第3个旋转方向---电池栏在下");
-
-
-    } break;
-    case UIInterfaceOrientationPortrait: {
-        NSLog(@"第0个旋转方向---电池栏在上");
-
-        self.fullScreen = NO;
-
-    } break;
-    case UIInterfaceOrientationLandscapeLeft: {
-        NSLog(@"第2个旋转方向---电池栏在右"); //软件屏幕左右方向和设备左右是反的
-        self.fullScreen = YES;
-
-    } break;
-    case UIInterfaceOrientationLandscapeRight: {
-        self.fullScreen = YES;
-
-    } break;
-
-    default:
-        break;
+            
+        case UIInterfaceOrientationPortraitUpsideDown: {
+            NSLog(@"第3个旋转方向---电池栏在下");
+            
+            
+        } break;
+        case UIInterfaceOrientationPortrait: {
+            NSLog(@"第0个旋转方向---电池栏在上");
+            
+            self.fullScreen = NO;
+            
+        } break;
+        case UIInterfaceOrientationLandscapeLeft: {
+            NSLog(@"第2个旋转方向---电池栏在右"); //软件屏幕左右方向和设备左右是反的
+            self.fullScreen = YES;
+            
+        } break;
+        case UIInterfaceOrientationLandscapeRight: {
+            self.fullScreen = YES;
+            
+        } break;
+            
+        default:
+            break;
     }
 }
 #pragma mark - 视频框在底部时隐藏时间label slider
 - (void)handleTimeLabelAndSliderWithHidden:(BOOL)hidden
 {
-
+    
     self.playerMaskView.currentTimeLabel.hidden = hidden;
     self.playerMaskView.totalTimeLabel.hidden = hidden;
     self.playerMaskView.slider.hidden = hidden;
@@ -924,46 +1019,46 @@ static LSPlayerView* playerView = nil;
 {
     _locationType = locationType;
     switch (locationType) {
-    case LSPLayerViewLocationTypeTop: {
-        NSLog(@"在上面");
-        self.playerMaskView.closeButton.hidden = NO;
-        self.panGesture.enabled = YES;
-        [[UIApplication sharedApplication] setStatusBarHidden:YES];
-        if (self.isMonitoring) {
-            [self.tempSuperView removeObserver:self forKeyPath:kLSPlayerViewContentOffset];
+        case LSPLayerViewLocationTypeTop: {
+            NSLog(@"在上面");
+            self.playerMaskView.closeButton.hidden = NO;
+            self.panGesture.enabled = YES;
+            //        [[UIApplication sharedApplication] setStatusBarHidden:YES];
+            if (self.isMonitoring) {
+                [self.tempSuperView removeObserver:self forKeyPath:kLSPlayerViewContentOffset];
+            }
+            self.monitoring = NO;
+            self.pinchGesture.enabled = NO;
+            break;
         }
-        self.monitoring = NO;
-        self.pinchGesture.enabled = NO;
-        break;
-    }
-    case LSPLayerViewLocationTypeMiddle: {
-        NSLog(@"在中间");
-        self.pinchGesture.enabled = NO;
-        self.playerMaskView.closeButton.hidden = YES; //当在中间时隐藏关闭按钮
-        self.panGesture.enabled = NO;
-        [[UIApplication sharedApplication] setStatusBarHidden:NO];
-        break;
-    }
-    case LSPLayerViewLocationTypeBottom: {
-        NSLog(@"在底下");
-        self.pinchGesture.enabled = YES;
-        if (self.isMonitoring) {
-            [self.tempSuperView removeObserver:self forKeyPath:kLSPlayerViewContentOffset];
+        case LSPLayerViewLocationTypeMiddle: {
+            NSLog(@"在中间");
+            self.pinchGesture.enabled = NO;
+            self.playerMaskView.closeButton.hidden = YES; //当在中间时隐藏关闭按钮
+            self.panGesture.enabled = NO;
+            //        [[UIApplication sharedApplication] setStatusBarHidden:NO];
+            break;
         }
-        self.monitoring = NO;
-        [[UIApplication sharedApplication] setStatusBarHidden:NO]; //次出会带来contentOffset变化导致在点击关闭按钮时
-        [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(nowHideMaskView) object:nil];
-        self.playerMaskView.hidden = NO;
-        [self handleTimeLabelAndSliderWithHidden:YES];
-        self.playerMaskView.playButton.hidden = YES;
-        self.panGesture.enabled = YES;
-
-        break;
-    }
-    case LSPLayerViewLocationTypeDragging: {
-
-        break;
-    }
+        case LSPLayerViewLocationTypeBottom: {
+            NSLog(@"在底下");
+            self.pinchGesture.enabled = YES;
+            if (self.isMonitoring) {
+                [self.tempSuperView removeObserver:self forKeyPath:kLSPlayerViewContentOffset];
+            }
+            self.monitoring = NO;
+            [[UIApplication sharedApplication] setStatusBarHidden:NO]; //次出会带来contentOffset变化导致在点击关闭按钮时
+            [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(nowHideMaskView) object:nil];
+            self.playerMaskView.hidden = NO;
+            [self handleTimeLabelAndSliderWithHidden:YES];
+            self.playerMaskView.playButton.hidden = YES;
+            self.panGesture.enabled = YES;
+            
+            break;
+        }
+        case LSPLayerViewLocationTypeDragging: {
+            
+            break;
+        }
     }
 }
 #pragma mark - 高斯模糊
@@ -1022,7 +1117,7 @@ static LSPlayerView* playerView = nil;
 - (void)layoutSubviews
 {
     [super layoutSubviews];
-
+    
     self.playerLayer.frame = self.bounds;
     self.playerMaskView.frame = self.bounds;
 }
@@ -1033,16 +1128,16 @@ static LSPlayerView* playerView = nil;
     //测试在网络变化过程中通知的发送情况
     //AVPlayerItemTimeJumpedNotification  the item's current time has changed discontinuously
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(jump) name:AVPlayerItemTimeJumpedNotification object:self.playerItem];
-
+    
     //AVPlayerItemFailedToPlayToEndTimeNotification item has failed to play to its end time
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(failed) name:AVPlayerItemFailedToPlayToEndTimeNotification object:self.playerItem];
-
+    
     //   //AVPlayerItemNewAccessLogEntryNotification a new access log entry has been added
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(accessSuccess) name:AVPlayerItemNewAccessLogEntryNotification object:self.playerItem];
-
+    
     //AVPlayerItemNewErrorLogEntryNotification  a new error log entry has been added
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(accessError) name:AVPlayerItemNewErrorLogEntryNotification object:self.playerItem];
-
+    
     //AVPlayerItemFailedToPlayToEndTimeErrorKey    // NSError
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(failedToPlay) name:AVPlayerItemFailedToPlayToEndTimeErrorKey object:self.playerItem];
 }

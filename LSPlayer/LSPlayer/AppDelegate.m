@@ -7,7 +7,7 @@
 //
 
 #import "AppDelegate.h"
-
+#import "LSNetworkSpeed.h"
 @interface AppDelegate ()
 
 @end
@@ -16,8 +16,16 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Override point for customization after application launch.
+
+      [[LSNetworkSpeed shareNetworkSpeed]start];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(log) name:LSDownloadNetworkSpeedNotificationKey object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(log) name:LSUploadNetworkSpeedNotificationKey object:nil];
     return YES;
+}
+- (void)log{
+    
+    NSLog(@"上传:%@----------下载:%@",[LSNetworkSpeed shareNetworkSpeed].uploadNetworkSpeed,[LSNetworkSpeed shareNetworkSpeed].downloadNetworkSpeed);
+    
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application {
