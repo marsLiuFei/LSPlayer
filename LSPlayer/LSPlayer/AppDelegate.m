@@ -7,7 +7,7 @@
 //
 
 #import "AppDelegate.h"
-#import "LSNetworkSpeed.h"
+#import "NetworkReachabilityManager.h"
 @interface AppDelegate ()
 
 @end
@@ -17,7 +17,7 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
-
+    [[NetworkReachabilityManager sharedInstance] startMonitoring];
 
     return YES;
 }

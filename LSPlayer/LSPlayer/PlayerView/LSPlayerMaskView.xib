@@ -31,22 +31,22 @@
                     </variation>
                 </button>
                 <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cpL-CN-v1f">
-                    <rect key="frame" x="20" y="288" width="299" height="2"/>
+                    <rect key="frame" x="20" y="288" width="285" height="2"/>
                 </progressView>
                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="00:00" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4YY-qw-k1S">
-                    <rect key="frame" x="329" y="282" width="34" height="14.5"/>
+                    <rect key="frame" x="315" y="282" width="34" height="14.5"/>
                     <fontDescription key="fontDescription" type="system" pointSize="12"/>
                     <color key="textColor" red="1" green="0.66727240089999995" blue="0.73316845919999996" alpha="1" colorSpace="calibratedRGB"/>
                     <nil key="highlightedColor"/>
                 </label>
                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="/00:00" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5OY-kK-AfU">
-                    <rect key="frame" x="364" y="282" width="38" height="14.5"/>
+                    <rect key="frame" x="350" y="282" width="38" height="14.5"/>
                     <fontDescription key="fontDescription" type="system" pointSize="12"/>
                     <color key="textColor" red="0.8174783269" green="1" blue="0.37396965669999999" alpha="1" colorSpace="calibratedRGB"/>
                     <nil key="highlightedColor"/>
                 </label>
                 <slider opaque="NO" contentMode="scaleToFill" verticalCompressionResistancePriority="749" contentHorizontalAlignment="center" contentVerticalAlignment="center" minValue="0.0" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="kqE-GT-thl">
-                    <rect key="frame" x="18" y="288" width="303" height="2.5"/>
+                    <rect key="frame" x="18" y="288" width="289" height="2.5"/>
                 </slider>
                 <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WdZ-1w-GcH" userLabel="close">
                     <rect key="frame" x="5" y="5" width="21" height="22"/>
@@ -60,12 +60,11 @@
                     <nil key="highlightedColor"/>
                 </label>
                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ICn-Ue-I1M" userLabel="full">
-                    <rect key="frame" x="402" y="271" width="36" height="36"/>
+                    <rect key="frame" x="388" y="264" width="50" height="50"/>
                     <constraints>
-                        <constraint firstAttribute="height" constant="36" id="Tfw-vc-yya"/>
-                        <constraint firstAttribute="width" constant="36" id="m6a-VO-aEA"/>
+                        <constraint firstAttribute="height" constant="50" id="Tfw-vc-yya"/>
+                        <constraint firstAttribute="width" constant="50" id="m6a-VO-aEA"/>
                     </constraints>
-                    <state key="normal" title="B" image="enterFullNormal.png"/>
                     <state key="highlighted" image="enterFullSelected"/>
                 </button>
                 <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="white" translatesAutoresizingMaskIntoConstraints="NO" id="SYs-EY-pBm" userLabel="acitivity">
@@ -123,6 +122,9 @@
             <variation key="default">
                 <mask key="constraints">
                     <exclude reference="jzn-c2-n6R"/>
+                    <exclude reference="DzS-Bb-aOj"/>
+                    <exclude reference="KFg-BC-4ug"/>
+                    <exclude reference="llj-5q-a6l"/>
                     <exclude reference="FGe-3w-Qss"/>
                     <exclude reference="Hkc-9o-KsB"/>
                     <exclude reference="NjI-Of-5sM"/>
@@ -131,9 +133,6 @@
                     <exclude reference="iI5-Ps-Ae0"/>
                     <exclude reference="iO0-wG-eXl"/>
                     <exclude reference="ksG-N0-2e9"/>
-                    <exclude reference="DzS-Bb-aOj"/>
-                    <exclude reference="KFg-BC-4ug"/>
-                    <exclude reference="llj-5q-a6l"/>
                     <exclude reference="29V-QX-Z6w"/>
                     <exclude reference="Szt-p7-pTi"/>
                     <exclude reference="V9q-yc-sYt"/>
@@ -162,7 +161,6 @@
         <image name="Pause" width="44" height="44"/>
         <image name="close_btn_normal" width="21" height="21"/>
         <image name="close_btn_sel" width="21" height="21"/>
-        <image name="enterFullNormal.png" width="36" height="36"/>
         <image name="enterFullSelected" width="36" height="36"/>
         <image name="playMiniNormal.png" width="100" height="100"/>
     </resources>

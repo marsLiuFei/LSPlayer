@@ -34,4 +34,6 @@ typedef NS_ENUM(NSInteger, LSPLayerViewLocationType) {
 //创建
 + (instancetype)playerView;
 
+#pragma mark - 关闭按钮点击事件
+- (void)closeClick;
 @end

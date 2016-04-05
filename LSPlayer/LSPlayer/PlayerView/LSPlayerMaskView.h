@@ -8,6 +8,9 @@
 
 #import <UIKit/UIKit.h>
 
+// 图片路径
+#define LSPlayerViewSrcName(file) [@"playerView.bundle" stringByAppendingPathComponent:file]
+
 @interface LSPlayerMaskView : UIView
 
 @property (weak, nonatomic) IBOutlet UISlider *slider;
