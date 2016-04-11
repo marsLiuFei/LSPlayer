@@ -8,17 +8,24 @@
 
 #import <UIKit/UIKit.h>
 
-typedef NS_ENUM(NSInteger, LSPLayerViewLocationType) {
-    LSPLayerViewLocationTypeMiddle=0, //中间
-    LSPLayerViewLocationTypeTop, //顶部
-    LSPLayerViewLocationTypeBottom, //底部
-    LSPLayerViewLocationTypeDragging
+typedef NS_ENUM(NSInteger, LSPlayerViewLocationType) {
+    LSPlayerViewLocationTypeMiddle = 0, //中间
+    LSPlayerViewLocationTypeTop, //顶部
+    LSPlayerViewLocationTypeBottom, //底部
+    LSPlayerViewLocationTypeDragging
     
 };
 
-@interface LSPlayerView : UIImageView
+typedef NS_ENUM(NSInteger, LSPlayerStatus) {
+    LSPlayerStatusPlaying = 0,
+    LSPlayerStatusPause,
+    LSPlayerStatusStop,
+    LSPlayerStatusReady,
+    LSPlayerStatusFaild
+    
+};
 
-
+@interface LSPlayerView : UIView
 
 //视频URL
 @property (nonatomic, copy) NSString* videoURL;
@@ -30,7 +37,7 @@ typedef NS_ENUM(NSInteger, LSPLayerViewLocationType) {
 @property (nonatomic, assign) CGRect currentFrame;
 
 @property (nonatomic, assign) NSInteger index;
-@property (nonatomic,strong) UITableView * tempSuperView;
+@property (nonatomic, strong) UITableView* tempSuperView;
 //创建
 + (instancetype)playerView;
 

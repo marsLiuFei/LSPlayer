@@ -61,6 +61,15 @@
         failure:^(NSURLSessionDataTask* _Nullable task, NSError* _Nonnull error){
 
         }];
+    //测试时地址有可能失效
+    NSURL* url = [[NSBundle mainBundle] URLForResource:@"list.json" withExtension:nil];
+    id responseObject = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfURL:url] options:0 error:NULL];
+    
+    for (NSDictionary* dict in responseObject[@"videoList"]) {
+        LSMediaModel* model = [[LSMediaModel alloc] initWithDictionary:dict];
+        [self.models addObject:model];
+    }
+    [self.tableView reloadData];
 }
 - (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView
 {

@@ -6,7 +6,7 @@
 //  Copyright © 2016年 song. All rights reserved.
 //
 #import "NetworkReachabilityManager.h"
-#import <AFNetworkReachabilityManager.h>
+#import "AFNetworkReachabilityManager.h"
  NSString *const LSNetworkChangeNotification=@"LSNetworkChangeNotification";
 @interface NetworkReachabilityManager()
 
