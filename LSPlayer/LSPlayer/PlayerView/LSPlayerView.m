@@ -231,10 +231,12 @@ static LSTopWindow* window = nil;
         switch (gesture.state) {
             case UIGestureRecognizerStateBegan: {
                 if (fabs(velocity.x) > fabs(velocity.y)) { //水平移动
+                    if (self.playerItem.currentTime.value>0) {
+                        currentTime=self.playerItem.currentTime.value/self.playerItem.currentTime.timescale;
+                        totalTime=self.playerItem.duration.value/self.playerItem.duration.timescale;
+                        progress = YES;
+                    }
                     
-                    currentTime=self.playerItem.currentTime.value/self.playerItem.currentTime.timescale;
-                    totalTime=self.playerItem.duration.value/self.playerItem.duration.timescale;
-                    progress = YES;
                 }
                 else {
                     progress = NO;
